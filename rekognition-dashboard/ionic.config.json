@@ -1,0 +1,7 @@
+{
+  "name": "rekognition-dashboard",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}

@@ -1,0 +1,14 @@
+<ion-card class="service-card {{ statusVariant }}">
+  <ion-card-header>
+    <ion-card-title class="service-title">{{ title }}</ion-card-title>
+    <ion-card-subtitle class="service-description">{{ description }}</ion-card-subtitle>
+  </ion-card-header>
+
+  <div class="service-icon">
+    <ion-icon [name]="icon"></ion-icon>
+  </div>
+
+  <ion-badge class="status-badge">
+    {{ statusLabel }}
+  </ion-badge>
+</ion-card>

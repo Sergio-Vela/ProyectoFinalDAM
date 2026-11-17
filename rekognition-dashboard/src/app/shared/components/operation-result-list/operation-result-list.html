@@ -1,0 +1,5 @@
+<ion-list class="result-list">
+  <app-operation-result-item *ngFor="let result of results" [item]="result"></app-operation-result-item>
+
+  <app-operation-result-item *ngIf="results.length === 0" [item]="emptyResult"></app-operation-result-item>
+</ion-list>
