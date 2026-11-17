@@ -1,0 +1,15 @@
+# Dependencias
+node_modules/
+
+# Compilados
+dist/
+www/
+build/
+
+# Angular
+.angular/
+
+# Archivos de entorno y configuración local
+.env
+.env.local
+.DS_Store
