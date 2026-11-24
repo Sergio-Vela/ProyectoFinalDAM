@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import {
   IonHeader,
   IonToolbar,
@@ -6,6 +6,8 @@ import {
   IonContent,
   IonIcon,
   IonButton,
+  IonSpinner,
+  IonText,
 } from '@ionic/angular';
 import { NativeTools } from 'capacitor-native-tools';
 import { AwsLivenessService, GetResultsResponse } from '../services/aws-liveness.service';
@@ -24,15 +26,25 @@ type LivenessStatus = 'idle' | 'creating' | 'running' | 'fetching' | 'complete' 
     IonContent,
     IonIcon,
     IonButton,
+    IonSpinner,
   ],
 })
-export class HomePage {
+export class HomePage implements OnInit {
   status: LivenessStatus = 'idle';
   sessionId: string | null = null;
   result: GetResultsResponse | null = null;
   error: string | null = null;
 
+  // Timeouts de seguridad (ms)
+  private readonly PLUGIN_TIMEOUT_MS = 60000;  // 60s para FaceLivenessActivity
+  private readonly LAMBDA_TIMEOUT_MS = 30000;  // 30s para peticiones HTTP
+
   constructor(private livenessService: AwsLivenessService) {}
+
+  ngOnInit() {
+    // Ejecutar automáticamente al cargar la página
+    this.iniciarVerificacion();
+  }
 
   get isBusy(): boolean {
     return (
@@ -47,7 +59,7 @@ export class HomePage {
       case 'creating':
         return 'Creando sesión de Face Liveness...';
       case 'running':
-        return 'Esperando verificación facial...';
+        return 'Abriendo verificación facial...';
       case 'fetching':
         return 'Consultando resultados...';
       case 'complete':
@@ -55,7 +67,7 @@ export class HomePage {
       case 'error':
         return 'Ocurrió un error';
       default:
-        return 'Listo para verificar';
+        return 'Iniciando verificación...';
     }
   }
 
@@ -70,22 +82,34 @@ export class HomePage {
 
     try {
       // 1. Solicitar creación de sesión al backend (Lambda existente)
-      const session = await this.livenessService.createSession().toPromise();
+      console.log('[HomePage] Solicitando sessionId a Lambda createSession...');
+      const session = await this.withTimeout(
+        this.livenessService.createSession().toPromise(),
+        this.LAMBDA_TIMEOUT_MS,
+        'Timeout creando sesión en Lambda'
+      );
+      
       if (!session) {
         throw new Error('El backend no devolvió un sessionId válido.');
       }
 
       this.sessionId = session;
-      console.log('SessionId recibido:', this.sessionId);
+      console.log('[HomePage] SessionId recibido:', this.sessionId);
 
-      // 2. Invocar plugin Capacitor con el SessionId
+      // 2. Invocar plugin Capacitor con el SessionId (con timeout de seguridad)
       this.status = 'running';
-      const pluginResult = await NativeTools.startFaceLiveness({
-        sessionId: this.sessionId,
-        region: 'us-east-1',
-      });
+      console.log('[HomePage] Lanzando FaceLivenessActivity via plugin...');
+      
+      const pluginResult = await this.withTimeout(
+        NativeTools.startFaceLiveness({
+          sessionId: this.sessionId,
+          region: 'us-east-1',
+        }),
+        this.PLUGIN_TIMEOUT_MS,
+        'Timeout esperando FaceLivenessActivity (¿permiso de cámara?)'
+      );
 
-      console.log('Resultado del plugin:', pluginResult);
+      console.log('[HomePage] Resultado del plugin:', pluginResult);
 
       if (pluginResult.status === 'cancelled') {
         this.status = 'idle';
@@ -101,19 +125,46 @@ export class HomePage {
 
       // 3. Consultar resultados al backend (Lambda existente)
       this.status = 'fetching';
-      const results = await this.livenessService.getSessionResults(this.sessionId).toPromise();
+      console.log('[HomePage] Consultando resultados a Lambda getSessionResults...');
+      const results = await this.withTimeout(
+        this.livenessService.getSessionResults(this.sessionId).toPromise(),
+        this.LAMBDA_TIMEOUT_MS,
+        'Timeout consultando resultados en Lambda'
+      );
+      
       if (!results) {
         throw new Error('El backend no devolvió resultados.');
       }
 
       this.result = results;
       this.status = 'complete';
+      console.log('[HomePage] Verificación completada con éxito');
     } catch (e) {
-      console.error(e);
+      console.error('[HomePage] Error en verificación:', e);
       this.status = 'error';
       this.error =
         e instanceof Error ? e.message : 'Ocurrió un error inesperado.';
     }
+  }
+
+  /**
+   * Wrapper con timeout para promesas. Evita que la UI se quede colgada "Esperando...".
+   */
+  private async withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    timeoutMessage: string
+  ): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs)
+      ),
+    ]);
+  }
+
+  reintentar() {
+    this.iniciarVerificacion();
   }
 
   get confidencePercentage(): string {

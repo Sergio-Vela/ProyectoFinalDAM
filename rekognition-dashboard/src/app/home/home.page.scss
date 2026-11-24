@@ -44,6 +44,20 @@ ion-button {
   font-weight: 600;
 }
 
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 3rem;
+  gap: 0.75rem;
+}
+
+.loading-text {
+  font-size: 1.1rem;
+  color: var(--reko-muted);
+}
+
 .result {
   margin-top: 1.5rem;
   padding: 1rem;
@@ -59,4 +73,10 @@ ion-button {
 .error {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.error-message {
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 1rem;
 }

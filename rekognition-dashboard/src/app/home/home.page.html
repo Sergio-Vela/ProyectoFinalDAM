@@ -11,17 +11,26 @@
     <h1>Verificación de identidad (AWS Face Liveness)</h1>
 
     <p>
-      Esta pantalla guía al usuario para completar una verificación facial usando el componente oficial
-      AWS Amplify UI FaceLivenessDetector. Se muestra la cámara, un óvalo para posicionar el rostro,
-      instrucciones y los desafíos de movimiento e iluminación.
+      Esta pantalla verifica tu identidad usando AWS Face Liveness.
+      La verificación se inicia automáticamente al cargar esta pantalla.
     </p>
 
-    <ion-button
-      expand="block"
-      (click)="iniciarVerificacion()"
-      [disabled]="isBusy">
-      {{ isBusy ? 'Esperando...' : 'Iniciar verificación' }}
-    </ion-button>
+    <!-- Sin botón: se ejecuta automáticamente en ngOnInit -->
+    @if (isBusy) {
+      <div class="loading">
+        <ion-spinner name="crescent"></ion-spinner>
+        <div class="loading-text">{{ statusText }}</div>
+      </div>
+    }
+
+    @if (status === 'error') {
+      <div class="result error">
+        <div class="error-message">{{ error }}</div>
+        <ion-button expand="block" (click)="reintentar()" color="danger">
+          Reintentar
+        </ion-button>
+      </div>
+    }
 
     @if (result) {
       <div class="result success">
@@ -29,7 +38,7 @@
       </div>
     }
 
-    @if (error) {
+    @if (error && status !== 'error') {
       <div class="result error">
         {{ error }}
       </div>
