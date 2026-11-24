@@ -9,21 +9,12 @@ import android.app.Activity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import com.amplifyframework.auth.AWSCredentials
-import com.amplifyframework.auth.AWSCredentialsProvider
-import com.amplifyframework.auth.AuthException
 import com.amplifyframework.core.Action
 import com.amplifyframework.core.Consumer
 import com.amplifyframework.ui.liveness.model.FaceLivenessDetectionException
 import com.amplifyframework.ui.liveness.ui.FaceLivenessDetector
-import com.amazonaws.auth.CognitoCachingCredentialsProvider
-import com.amazonaws.auth.AWSSessionCredentials
-import com.amazonaws.regions.Regions
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class FaceLivenessActivity : AppCompatActivity() {
 
@@ -72,33 +63,6 @@ class FaceLivenessActivity : AppCompatActivity() {
                 FaceLivenessDetector(
                     sessionId = sessionId,
                     region = region,
-                    credentialsProvider = object : AWSCredentialsProvider<AWSCredentials> {
-                        override fun fetchAWSCredentials(
-                            onSuccess: Consumer<AWSCredentials>,
-                            onError: Consumer<AuthException>
-                        ) {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                try {
-                                    val credentialsProvider = CognitoCachingCredentialsProvider(
-                                        applicationContext,
-                                        "us-east-1:e9cfdd57-09f6-47f9-b1d9-6d65a2ca87e0",
-                                        Regions.US_EAST_1
-                                    )
-                                    val creds = credentialsProvider.getCredentials()
-
-                                    // Amplify expects a data class with accessKeyId and secretAccessKey
-                                    val amplifyCreds = AWSCredentials(
-                                        accessKeyId = creds.getAWSAccessKeyId(),
-                                        secretAccessKey = creds.getAWSSecretKey()
-                                    )
-                                    onSuccess.accept(amplifyCreds)
-                                } catch (e: Exception) {
-                                    val authError = AuthException("Failed to fetch AWS credentials for Face Liveness: ${e.message}", "Check Cognito Identity Pool configuration and network connectivity")
-                                    onError.accept(authError)
-                                }
-                            }
-                        }
-                    },
                     disableStartView = false,
                     onComplete = Action {
                         Log.d(TAG, "Face Liveness completed successfully")
@@ -106,7 +70,10 @@ class FaceLivenessActivity : AppCompatActivity() {
                         finish()
                     },
                     onError = Consumer { exception ->
-                        Log.e(TAG, "Face Liveness error - exception=${exception.javaClass.simpleName} message=${exception.message}")
+                        Log.e(
+                            TAG,
+                            "Face Liveness error - exception=${exception.javaClass.simpleName} message=${exception.message}"
+                        )
                         sendResult("error", exception.message ?: "Unknown error")
                         finish()
                     }
