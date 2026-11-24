@@ -1,6 +1,7 @@
 package io.ionic.starter.com.vela.nativetools
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -8,10 +9,10 @@ import android.app.Activity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
-import com.amplifyframework.core.Amplify
 import com.amplifyframework.auth.AWSCredentials
 import com.amplifyframework.auth.AWSCredentialsProvider
 import com.amplifyframework.auth.AuthException
+import com.amplifyframework.core.Action
 import com.amplifyframework.core.Consumer
 import com.amplifyframework.ui.liveness.model.FaceLivenessDetectionException
 import com.amplifyframework.ui.liveness.ui.FaceLivenessDetector
@@ -25,13 +26,16 @@ class FaceLivenessActivity : AppCompatActivity() {
     private val TAG = "FaceLivenessActivity"
     private val CAMERA_PERMISSION_REQUEST = 100
 
+    private lateinit var callbackId: String
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        callbackId = intent.extras?.getString("com.vela.nativetools.CALL_ID") ?: ""
         val sessionId = intent.extras?.getString("com.vela.nativetools.SESSION_ID") ?: ""
         val region = intent.extras?.getString("com.vela.nativetools.REGION") ?: "us-east-1"
 
-        Log.d(TAG, "onCreate - initializing Face Liveness, sessionId=$sessionId")
+        Log.d(TAG, "onCreate - initializing Face Liveness, sessionId=$sessionId, callbackId=$callbackId")
 
         // Check camera permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -50,8 +54,8 @@ class FaceLivenessActivity : AppCompatActivity() {
                 val region = intent.extras?.getString("com.vela.nativetools.REGION") ?: "us-east-1"
                 startFaceLiveness(sessionId, region)
             } else {
-                Log.w(TAG, "Camera permission denied")
-                finish()
+                Log.w(TAG, "Camera permission denied - keeping activity open for user to grant")
+                // Do NOT finish() - keep activity open so user can grant permission
             }
         }
     }
@@ -84,22 +88,39 @@ class FaceLivenessActivity : AppCompatActivity() {
                             onSuccess.accept(amplifyCreds)
                         }
                     },
-                    false,
-                    { finish() },
-                    { exception ->
+                    disableStartView = false,
+                    onComplete = Action { 
+                        Log.d(TAG, "Face Liveness completed successfully")
+                        sendResult("complete", "complete")
+                        finish()
+                    },
+                    onError = Consumer { exception ->
                         Log.e(TAG, "Face Liveness error: ${exception?.message} - ${exception?.recoverySuggestion}")
+                        sendResult("error", exception?.message ?: "Unknown error")
                         finish()
                     }
                 )
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error starting Face Liveness", e)
+            sendResult("error", e.message ?: "Exception occurred")
             finish()
         }
     }
 
+    private fun sendResult(status: String, result: String) {
+        Log.d(TAG, "sendResult: status=$status, result=$result")
+        
+        val intent = Intent().apply {
+            putExtra("result_status", status)
+            putExtra("result_data", result)
+            putExtra("callback_id", callbackId)
+        }
+        setResult(if (status == "complete") Activity.RESULT_OK else if (status == "cancelled") Activity.RESULT_CANCELED else Activity.RESULT_OK, intent)
+    }
+
     override fun onBackPressed() {
         Log.d(TAG, "onBackPressed - canceling Face Liveness")
-        finish()
+        sendResult("cancelled", "user_cancelled")
     }
 }
