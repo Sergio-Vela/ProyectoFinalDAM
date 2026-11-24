@@ -1,0 +1,9 @@
+{
+  "name": "lamda3-compare-faces",
+  "version": "1.0.0",
+  "description": "Lambda para comparar rostros con Rekognition",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.700.0"
+  }
+}
