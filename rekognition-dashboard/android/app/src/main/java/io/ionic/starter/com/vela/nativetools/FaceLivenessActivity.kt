@@ -17,9 +17,13 @@ import com.amplifyframework.core.Consumer
 import com.amplifyframework.ui.liveness.model.FaceLivenessDetectionException
 import com.amplifyframework.ui.liveness.ui.FaceLivenessDetector
 import com.amazonaws.auth.CognitoCachingCredentialsProvider
+import com.amazonaws.auth.AWSSessionCredentials
 import com.amazonaws.regions.Regions
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class FaceLivenessActivity : AppCompatActivity() {
 
@@ -73,30 +77,37 @@ class FaceLivenessActivity : AppCompatActivity() {
                             onSuccess: Consumer<AWSCredentials>,
                             onError: Consumer<AuthException>
                         ) {
-                            // Use CognitoCachingCredentialsProvider for Cognito Identity Pool
-                            val credentialsProvider = CognitoCachingCredentialsProvider(
-                                applicationContext,
-                                "us-east-1:e9cfdd57-09f6-47f9-b1d9-6d65a2ca87e0",
-                                Regions.US_EAST_1
-                            )
-                            val creds = credentialsProvider.getCredentials()
-                            // Convert AWSSessionCredentials to Amplify AWSCredentials
-                            val amplifyCreds = AWSCredentials(
-                                creds.getAWSAccessKeyId(),
-                                creds.getAWSSecretKey()
-                            )
-                            onSuccess.accept(amplifyCreds)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                try {
+                                    val credentialsProvider = CognitoCachingCredentialsProvider(
+                                        applicationContext,
+                                        "us-east-1:e9cfdd57-09f6-47f9-b1d9-6d65a2ca87e0",
+                                        Regions.US_EAST_1
+                                    )
+                                    val creds = credentialsProvider.getCredentials()
+
+                                    // Amplify expects a data class with accessKeyId and secretAccessKey
+                                    val amplifyCreds = AWSCredentials(
+                                        accessKeyId = creds.getAWSAccessKeyId(),
+                                        secretAccessKey = creds.getAWSSecretKey()
+                                    )
+                                    onSuccess.accept(amplifyCreds)
+                                } catch (e: Exception) {
+                                    val authError = AuthException("Failed to fetch AWS credentials for Face Liveness: ${e.message}", "Check Cognito Identity Pool configuration and network connectivity")
+                                    onError.accept(authError)
+                                }
+                            }
                         }
                     },
                     disableStartView = false,
-                    onComplete = Action { 
+                    onComplete = Action {
                         Log.d(TAG, "Face Liveness completed successfully")
                         sendResult("complete", "complete")
                         finish()
                     },
                     onError = Consumer { exception ->
-                        Log.e(TAG, "Face Liveness error: ${exception?.message} - ${exception?.recoverySuggestion}")
-                        sendResult("error", exception?.message ?: "Unknown error")
+                        Log.e(TAG, "Face Liveness error - exception=${exception.javaClass.simpleName} message=${exception.message}")
+                        sendResult("error", exception.message ?: "Unknown error")
                         finish()
                     }
                 )
@@ -110,7 +121,7 @@ class FaceLivenessActivity : AppCompatActivity() {
 
     private fun sendResult(status: String, result: String) {
         Log.d(TAG, "sendResult: status=$status, result=$result")
-        
+
         val intent = Intent().apply {
             putExtra("result_status", status)
             putExtra("result_data", result)
