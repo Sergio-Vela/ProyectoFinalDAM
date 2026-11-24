@@ -1,146 +1,38 @@
-<ion-header [translucent]="true">
+<ion-header>
   <ion-toolbar>
-    <ion-title>
-      Rekognition Dashboard
-      <p class="toolbar-subtitle">Plataforma de demostración de reconocimiento facial</p>
-    </ion-title>
-    <ion-badge class="aws-badge">
-      <ion-icon name="cloud-outline"></ion-icon>
-      AWS no conectado
-    </ion-badge>
+    <ion-title>Verificación de identidad - Face Liveness</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Rekognition Dashboard</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content class="ion-padding">
+  <div class="container">
+    <ion-icon name="camera-outline" class="main-icon"></ion-icon>
 
-  <div class="dashboard">
-    <section class="services-section">
-      <div class="section-header">
-        <ion-icon name="grid-outline" class="section-icon"></ion-icon>
-        <h2 class="section-title">Resumen de servicios</h2>
+    <h1>Verificación de identidad (AWS Face Liveness)</h1>
+
+    <p>
+      Esta pantalla guía al usuario para completar una verificación facial usando el componente oficial
+      AWS Amplify UI FaceLivenessDetector. Se muestra la cámara, un óvalo para posicionar el rostro,
+      instrucciones y los desafíos de movimiento e iluminación.
+    </p>
+
+    <ion-button
+      expand="block"
+      (click)="iniciarVerificacion()"
+      [disabled]="isBusy">
+      {{ isBusy ? 'Esperando...' : 'Iniciar verificación' }}
+    </ion-button>
+
+    @if (result) {
+      <div class="result success">
+        {{ result.status }}: {{ result.message }} - {{ result.confidenceScore ?? '' }}
       </div>
+    }
 
-      <ion-grid class="services-grid">
-        <ion-row>
-          <ion-col size="12">
-            <app-service-status-card
-              [icon]="services[0].icon"
-              [title]="services[0].title"
-              [description]="services[0].description"
-              [statusLabel]="services[0].statusLabel"
-              [statusVariant]="services[0].statusVariant">
-            </app-service-status-card>
-          </ion-col>
-          <ion-col size="12">
-            <app-service-status-card
-              [icon]="services[1].icon"
-              [title]="services[1].title"
-              [description]="services[1].description"
-              [statusLabel]="services[1].statusLabel"
-              [statusVariant]="services[1].statusVariant">
-            </app-service-status-card>
-          </ion-col>
-          <ion-col size="12">
-            <app-service-status-card
-              [icon]="services[2].icon"
-              [title]="services[2].title"
-              [description]="services[2].description"
-              [statusLabel]="services[2].statusLabel"
-              [statusVariant]="services[2].statusVariant">
-            </app-service-status-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </section>
-
-    <section class="liveness-section">
-      <div class="section-header">
-        <ion-icon name="person-outline" class="section-icon"></ion-icon>
-        <h2 class="section-title">Verificación de identidad</h2>
+    @if (error) {
+      <div class="result error">
+        {{ error }}
       </div>
-      <p class="section-description">
-        Crea una sessión Face Liveness y consulta los resultados mediante Lambda.
-      </p>
-
-      <div class="liveness-actions">
-        <ion-button expand="full" color="primary" (click)="notImplemented()">Crear sessión</ion-button>
-      </div>
-
-      <div class="session-id-card">
-        <ion-label>Aún no se ha creado una sesión</ion-label>
-      </div>
-
-      <div class="liveness-actions">
-        <ion-button expand="full" (click)="notImplemented()">Consultar resultados</ion-button>
-      </div>
-
-      <ion-card class="status-card">
-        <ion-card-content>
-          <div class="status-row">
-            <span class="status-label">Estado</span>
-            <ion-badge class="status-badge pending">Pendiente</ion-badge>
-          </div>
-          <div class="status-row">
-            <span class="status-label">Puntuación de confianza</span>
-            <span class="status-value">—</span>
-          </div>
-        </ion-card-content>
-      </ion-card>
-    </section>
-
-    <section class="compare-section">
-      <div class="section-header">
-        <ion-icon name="images-outline" class="section-icon"></ion-icon>
-        <h2 class="section-title">Comparación facial</h2>
-      </div>
-      <p class="section-description">
-        Captura una fotografía y compárala con la imagen registrada.
-      </p>
-
-      <ion-grid class="photo-grid">
-        <ion-row>
-          <ion-col size="12" size-md="6" class="photo-col">
-            <div class="photo-placeholder">
-              <ion-icon name="camera-outline"></ion-icon>
-              <p>Fotografía capturada</p>
-            </div>
-          </ion-col>
-          <ion-col size="12" size-md="6" class="photo-col">
-            <div class="photo-placeholder">
-              <ion-icon name="person-outline"></ion-icon>
-              <p>Fotografía registrada</p>
-            </div>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-
-      <div class="capture-actions">
-        <ion-button expand="full" (click)="notImplemented()">Capturar fotografía</ion-button>
-        <ion-button expand="full" class="action-button secondary" (click)="notImplemented()">Comparar rostros</ion-button>
-      </div>
-
-      <ion-card class="similarity-card">
-        <ion-card-content>
-          <div class="similarity-row">
-            <span class="similarity-label">Porcentaje de similitud</span>
-            <span class="similarity-value">—</span>
-          </div>
-        </ion-card-content>
-      </ion-card>
-    </section>
-
-    <section class="results-section">
-      <div class="section-header">
-        <ion-icon name="list-outline" class="section-icon"></ion-icon>
-        <h2 class="section-title">Resultados</h2>
-      </div>
-
-      <app-operation-result-list [results]="results"></app-operation-result-list>
-    </section>
+    }
   </div>
 </ion-content>

@@ -28,6 +28,7 @@ npx cap sync
 
 * [`echo(...)`](#echo)
 * [`showNativeAlert()`](#shownativealert)
+* [`startFaceLiveness(...)`](#startfaceliveness)
 
 </docgen-index>
 
@@ -56,6 +57,21 @@ showNativeAlert() => Promise<{ action: string; }>
 ```
 
 **Returns:** <code>Promise&lt;{ action: string; }&gt;</code>
+
+--------------------
+
+
+### startFaceLiveness(...)
+
+```typescript
+startFaceLiveness(options: { sessionId: string; region?: string; }) => Promise<{ status: 'complete' | 'error' | 'cancelled'; result?: string; error?: string; }>
+```
+
+| Param         | Type                                                 |
+| ------------- | ---------------------------------------------------- |
+| **`options`** | <code>{ sessionId: string; region?: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ status: 'error' | 'complete' | 'cancelled'; result?: string; error?: string; }&gt;</code>
 
 --------------------
 

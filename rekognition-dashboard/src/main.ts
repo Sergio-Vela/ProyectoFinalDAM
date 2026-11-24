@@ -6,6 +6,7 @@ import {
   withPreloading,
   PreloadAllModules,
 } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
 import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular';
 import { Amplify } from 'aws-amplify';
 
@@ -19,6 +20,7 @@ bootstrapApplication(AppComponent, {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideIonicAngular(),
+    provideHttpClient(),
     provideRouter(routes, withPreloading(PreloadAllModules), withComponentInputBinding()),
   ],
 });

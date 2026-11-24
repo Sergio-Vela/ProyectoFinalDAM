@@ -11,4 +11,11 @@ export class NativeToolsWeb extends WebPlugin implements NativeToolsPlugin {
   async showNativeAlert(): Promise<{ action: string }> {
     throw new Error('La alerta nativa solo está disponible en Android');
   }
+
+  async startFaceLiveness(_options: {
+    sessionId: string;
+    region?: string;
+  }): Promise<{ status: 'complete' | 'error' | 'cancelled'; result?: string; error?: string }> {
+    throw new Error('Face Liveness solo está disponible en Android');
+  }
 }
